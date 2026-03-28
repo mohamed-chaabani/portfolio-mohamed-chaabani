@@ -1,3 +1,5 @@
+"use client";
+
 import { ExternalLink, Github } from 'lucide-react';
 import { useInView } from '@/hooks/use-in-view';
 
@@ -32,7 +34,7 @@ export function ProjectCard({ title, description, tech, githubUrl, liveUrl, dela
       <div>
         <div className="flex justify-between items-start mb-6">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary group-hover:bg-primary/20 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinelinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           </div>
           <div className="flex gap-3 text-muted-foreground">
             {githubUrl && (

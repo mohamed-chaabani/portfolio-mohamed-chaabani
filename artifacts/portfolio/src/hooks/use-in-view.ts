@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useRef, RefObject } from 'react';
 
 export function useInView(options = { threshold: 0.1, triggerOnce: true }): [RefObject<HTMLDivElement | null>, boolean] {
