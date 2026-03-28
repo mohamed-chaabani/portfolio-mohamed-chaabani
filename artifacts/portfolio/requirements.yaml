@@ -1,0 +1,10 @@
+packages:
+  "react-hook-form": "Form state management for the contact section"
+  "@hookform/resolvers": "Zod integration for form validation"
+
+images: []
+
+notes:
+  - Frontend-only single page application. No backend API calls.
+  - Animations are built with vanilla Canvas API and CSS, no external libraries.
+  - Uses standard anchor tags for scroll navigation instead of wouter links.
