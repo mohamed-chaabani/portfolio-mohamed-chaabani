@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,18 +14,93 @@ import { Navbar } from '@/components/Navbar';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { ProjectCard } from '@/components/ProjectCard';
 
-// Setup Form Schema
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type About = {
+  name: string;
+  title: string;
+  phrases: string[];
+  bio: string;
+  email: string;
+  github: string;
+  linkedin: string;
+  twitter: string;
+  yearsExperience: number;
+  projectsCompleted: number;
+  happyClients: number;
+};
+
+type Skill = { id: number; name: string; category: string };
+type Project = {
+  id: number;
+  title: string;
+  description: string;
+  tags: string[];
+  githubUrl: string;
+  liveUrl: string;
+  featured: boolean;
+};
+
+type PortfolioData = { about: About | null; skills: Skill[]; projects: Project[] };
+
+// ─── Fallback data (shown while loading) ─────────────────────────────────────
+
+const FALLBACK: PortfolioData = {
+  about: {
+    name: "Alex Morgan",
+    title: "Full Stack Developer",
+    phrases: ["scalable web apps.", "high-performance APIs.", "beautiful user interfaces."],
+    bio: "A full-stack engineer specializing in building exceptional digital experiences.",
+    email: "hello@example.com",
+    github: "#", linkedin: "#", twitter: "#",
+    yearsExperience: 8, projectsCompleted: 50, happyClients: 30,
+  },
+  skills: [],
+  projects: [],
+};
+
+// ─── Category config ──────────────────────────────────────────────────────────
+
+const CAT_CONFIG: Record<string, { icon: string; color: string; bgColor: string; borderColor: string; textColor: string }> = {
+  "Frontend": {
+    icon: "⚡",
+    color: "rgb(0,200,255)",
+    bgColor: "rgba(0,200,255,0.03)",
+    borderColor: "rgba(0,200,255,0.3)",
+    textColor: "rgba(0,200,255,0.9)",
+  },
+  "Backend": {
+    icon: "🛠",
+    color: "#8b5cf6",
+    bgColor: "rgba(139,92,246,0.03)",
+    borderColor: "rgba(139,92,246,0.3)",
+    textColor: "rgba(139,92,246,0.9)",
+  },
+  "DevOps & Tools": {
+    icon: "🚀",
+    color: "#10b981",
+    bgColor: "rgba(34,197,94,0.03)",
+    borderColor: "rgba(34,197,94,0.3)",
+    textColor: "rgba(52,211,153,0.9)",
+  },
+};
+
+// ─── Contact form ─────────────────────────────────────────────────────────────
+
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   message: z.string().min(10, "Message must be at least 10 characters"),
 });
-
 type ContactFormValues = z.infer<typeof contactSchema>;
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Home() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [data, setData] = useState<PortfolioData>(FALLBACK);
+  const [loading, setLoading] = useState(true);
 
   const [aboutRef, aboutInView] = useInView({ threshold: 0.2 });
   const [contactRef, contactInView] = useInView({ threshold: 0.2 });
@@ -35,9 +110,31 @@ export default function Home() {
     defaultValues: { name: '', email: '', message: '' }
   });
 
+  // Fetch portfolio data from API
+  useEffect(() => {
+    fetch('/api/portfolio/public')
+      .then((res) => res.ok ? res.json() : null)
+      .then((json) => {
+        if (json) setData(json);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const { about, skills, projects } = data;
+
+  // Group skills by category
+  const categories = ["Frontend", "Backend", "DevOps & Tools"];
+  const skillsByCategory = categories.reduce((acc, cat) => {
+    acc[cat] = skills.filter((s) => s.category === cat);
+    return acc;
+  }, {} as Record<string, Skill[]>);
+
+  // If no skills from API yet, show nothing (section still renders)
+  const hasSkills = skills.length > 0;
+
   const onSubmit = async (data: ContactFormValues) => {
     setIsSubmitting(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     setIsSubmitting(false);
     toast({
@@ -60,43 +157,49 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       <Navbar />
 
-      {/* --- HERO SECTION --- */}
+      {/* ─── HERO ─────────────────────────────────────────────────────────── */}
       <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden">
         <CanvasParticles />
-        
+
         <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 w-full flex flex-col items-start mt-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-display text-sm font-medium mb-6 animate-in-up is-visible">
             <Terminal size={16} />
             <span>System Ready _</span>
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black font-display text-white tracking-tighter mb-4 animate-in-up is-visible delay-100">
-            Alex <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Morgan</span>
+            {about?.name?.split(' ')[0] || 'Alex'}{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+              {about?.name?.split(' ').slice(1).join(' ') || 'Morgan'}
+            </span>
           </h1>
-          
+
           <div className="text-xl md:text-3xl lg:text-4xl text-muted-foreground font-medium mb-8 animate-in-up is-visible delay-200 h-[40px] md:h-[56px]">
             <span className="mr-3">I build</span>
-            <TypingEffect words={[
-              "scalable web apps.",
-              "high-performance APIs.",
-              "beautiful user interfaces.",
-              "secure cloud architectures."
-            ]} />
+            {!loading && (
+              <TypingEffect
+                words={
+                  about?.phrases?.length
+                    ? about.phrases
+                    : ["scalable web apps.", "high-performance APIs.", "beautiful user interfaces."]
+                }
+              />
+            )}
           </div>
-          
+
           <p className="max-w-xl text-lg text-muted-foreground/80 leading-relaxed mb-10 animate-in-up is-visible delay-300">
-            A full-stack engineer specializing in building (and occasionally designing) exceptional digital experiences. Currently focused on building accessible, human-centered products.
+            {about?.bio?.split('\n')[0] || "A full-stack engineer specializing in building exceptional digital experiences."}
           </p>
-          
+
           <div className="flex flex-wrap gap-4 animate-in-up is-visible delay-400">
-            <button 
+            <button
               onClick={() => scrollTo('#projects')}
               className="px-8 py-4 bg-primary text-primary-foreground font-display font-bold tracking-wider uppercase rounded-lg hover:bg-primary/90 transition-all box-glow flex items-center gap-2 group"
             >
               View Work
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <button 
+            <button
               onClick={() => scrollTo('#contact')}
               className="px-8 py-4 bg-transparent text-white font-display font-bold tracking-wider uppercase rounded-lg border-2 border-white/20 hover:border-white/60 hover:bg-white/5 transition-all"
             >
@@ -105,51 +208,68 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-float opacity-70">
           <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">Scroll</span>
           <div className="w-[1px] h-12 bg-gradient-to-b from-primary to-transparent"></div>
         </div>
       </section>
 
-      {/* --- ABOUT SECTION --- */}
+      {/* ─── ABOUT ────────────────────────────────────────────────────────── */}
       <section id="about" className="py-24 md:py-32 relative">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div 
-              ref={aboutRef as any}
-              className={`animate-in-up ${aboutInView ? 'is-visible' : ''}`}
-            >
+            <div ref={aboutRef as any} className={`animate-in-up ${aboutInView ? 'is-visible' : ''}`}>
               <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 flex items-center gap-4">
-                <span className="text-primary text-2xl md:text-3xl font-normal">01.</span> 
+                <span className="text-primary text-2xl md:text-3xl font-normal">01.</span>
                 About Me
                 <div className="h-[1px] flex-grow bg-white/10 ml-4 hidden sm:block"></div>
               </h2>
-              
+
               <div className="space-y-6 text-lg text-muted-foreground leading-relaxed">
-                <p>
-                  Hello! My name is Alex and I enjoy creating things that live on the internet. My interest in web development started back in 2015 when I decided to try editing custom Tumblr themes — turns out hacking together HTML & CSS taught me a lot about logic and structure!
-                </p>
-                <p>
-                  Fast-forward to today, and I've had the privilege of working at an advertising agency, a start-up, a huge corporation, and a student-led design studio. My main focus these days is building accessible, inclusive products and digital experiences for a variety of clients.
-                </p>
-                <p>
-                  When I'm not at the computer, I'm usually hanging out with my dog, reading sci-fi novels, or experimenting with generative art.
-                </p>
+                {about?.bio
+                  ? about.bio.split('\n\n').filter(Boolean).map((para, i) => (
+                    <p key={i}>{para.trim()}</p>
+                  ))
+                  : <p>A full-stack engineer specializing in building exceptional digital experiences.</p>
+                }
+              </div>
+
+              {/* Social links */}
+              <div className="flex gap-4 mt-8">
+                {about?.github && about.github !== '#' && (
+                  <a href={about.github} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full">
+                    <Github size={20} />
+                  </a>
+                )}
+                {about?.linkedin && about.linkedin !== '#' && (
+                  <a href={about.linkedin} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full">
+                    <Linkedin size={20} />
+                  </a>
+                )}
+                {about?.twitter && about.twitter !== '#' && (
+                  <a href={about.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full">
+                    <Twitter size={20} />
+                  </a>
+                )}
+                {about?.email && (
+                  <a href={`mailto:${about.email}`} className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full">
+                    <Mail size={20} />
+                  </a>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:gap-6">
-              <AnimatedCounter end={50} suffix="+" label="Projects" />
-              <AnimatedCounter end={5} suffix="+" label="Years Exp" duration={1500} />
-              <AnimatedCounter end={30} suffix="+" label="Clients" duration={2500} />
+              <AnimatedCounter end={about?.projectsCompleted ?? 50} suffix="+" label="Projects" />
+              <AnimatedCounter end={about?.yearsExperience ?? 8} suffix="+" label="Years Exp" duration={1500} />
+              <AnimatedCounter end={about?.happyClients ?? 30} suffix="+" label="Clients" duration={2500} />
               <AnimatedCounter end={10} suffix="+" label="Tech Stack" duration={2000} />
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- SKILLS SECTION --- */}
+      {/* ─── SKILLS ───────────────────────────────────────────────────────── */}
       <section id="skills" className="py-24 md:py-32 relative border-y border-white/5" style={{ background: 'rgba(6,13,20,0.6)' }}>
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-16 flex items-center gap-4">
@@ -159,136 +279,90 @@ export default function Home() {
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Frontend */}
-            <div className="rounded-2xl border border-white/10 p-6 hover:border-primary/40 transition-colors duration-300" style={{ background: 'rgba(0,200,255,0.03)' }}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'rgba(0,200,255,0.15)' }}>⚡</div>
-                <h3 className="text-lg font-display font-bold text-white tracking-wide">Frontend</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Three.js', 'Framer Motion', 'Redux', 'GraphQL'].map((skill) => (
-                  <span key={skill} className="px-3 py-1.5 rounded-full text-sm font-medium border border-primary/30 text-primary/90 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-default" style={{ background: 'rgba(0,200,255,0.05)' }}>
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Backend */}
-            <div className="rounded-2xl border border-white/10 p-6 hover:border-secondary/40 transition-colors duration-300" style={{ background: 'rgba(139,92,246,0.03)' }}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'rgba(139,92,246,0.15)' }}>🛠</div>
-                <h3 className="text-lg font-display font-bold text-white tracking-wide">Backend</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Node.js', 'Express', 'Python', 'Django', 'PostgreSQL', 'MongoDB', 'Redis', 'REST APIs'].map((skill) => (
-                  <span key={skill} className="px-3 py-1.5 rounded-full text-sm font-medium border border-secondary/30 text-secondary/90 hover:border-secondary hover:text-secondary hover:bg-secondary/10 transition-all duration-200 cursor-default" style={{ background: 'rgba(139,92,246,0.05)' }}>
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* DevOps & Tools */}
-            <div className="rounded-2xl border border-white/10 p-6 hover:border-green-400/40 transition-colors duration-300" style={{ background: 'rgba(34,197,94,0.03)' }}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'rgba(34,197,94,0.15)' }}>🚀</div>
-                <h3 className="text-lg font-display font-bold text-white tracking-wide">DevOps & Tools</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Docker', 'AWS', 'GCP', 'CI/CD', 'GitHub Actions', 'Linux', 'Figma', 'Nginx'].map((skill) => (
-                  <span key={skill} className="px-3 py-1.5 rounded-full text-sm font-medium border border-green-500/30 text-green-400/90 hover:border-green-400 hover:text-green-400 hover:bg-green-400/10 transition-all duration-200 cursor-default" style={{ background: 'rgba(34,197,94,0.05)' }}>
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
+            {categories.map((cat) => {
+              const cfg = CAT_CONFIG[cat];
+              const catSkills = skillsByCategory[cat] || [];
+              return (
+                <div
+                  key={cat}
+                  className="rounded-2xl border border-white/10 p-6 transition-colors duration-300"
+                  style={{ background: cfg.bgColor }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = cfg.color + '66')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: cfg.color + '26' }}>
+                      {cfg.icon}
+                    </div>
+                    <h3 className="text-lg font-display font-bold text-white tracking-wide">{cat}</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {catSkills.length > 0
+                      ? catSkills.map((skill) => (
+                        <span
+                          key={skill.id}
+                          className="px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 cursor-default"
+                          style={{ borderColor: cfg.borderColor, color: cfg.textColor, background: cfg.color + '0D' }}
+                        >
+                          {skill.name}
+                        </span>
+                      ))
+                      : !hasSkills && ['Loading...'].map((s) => (
+                        <span key={s} className="px-3 py-1.5 rounded-full text-sm font-medium border border-white/10 text-white/30">
+                          {s}
+                        </span>
+                      ))
+                    }
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* --- PROJECTS SECTION --- */}
+      {/* ─── PROJECTS ─────────────────────────────────────────────────────── */}
       <section id="projects" className="py-24 md:py-32 relative">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-16 flex items-center gap-4">
-            <span className="text-primary text-2xl md:text-3xl font-normal">03.</span> 
+            <span className="text-primary text-2xl md:text-3xl font-normal">03.</span>
             Featured Work
             <div className="h-[1px] flex-grow bg-white/10 ml-4 hidden sm:block"></div>
           </h2>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <ProjectCard 
-              title="Nexus E-Commerce"
-              description="A high-performance headless e-commerce platform with real-time inventory tracking, Stripe payments, and an AI-driven product recommendation engine."
-              tech={["Next.js", "TypeScript", "Stripe", "Prisma"]}
-              githubUrl="#"
-              liveUrl="#"
-              delay={0}
-            />
-            <ProjectCard 
-              title="Sync Task Manager"
-              description="Collaborative project management tool featuring real-time socket connections for live board updates, drag-and-drop interfaces, and role-based access control."
-              tech={["React", "Node.js", "Socket.io", "PostgreSQL"]}
-              githubUrl="#"
-              liveUrl="#"
-              delay={100}
-            />
-            <ProjectCard 
-              title="Aura Chat"
-              description="End-to-end encrypted messaging application supporting voice notes, media sharing, and self-destructing messages within specialized team channels."
-              tech={["React Native", "WebRTC", "Express", "MongoDB"]}
-              githubUrl="#"
-              delay={200}
-            />
-            <ProjectCard 
-              title="Quantum Portfolio CMS"
-              description="A brutalist, developer-focused content management system for portfolios. Markdown support, API generation, and automated GitHub Pages deployment."
-              tech={["Vue.js", "Go", "Docker", "GraphQL"]}
-              githubUrl="#"
-              liveUrl="#"
-              delay={300}
-            />
-            <ProjectCard 
-              title="Atmos Weather Dashboard"
-              description="Global climate monitoring dashboard aggregating data from 5+ meteorological APIs. Features WebGL interactive globe and predictive forecasting models."
-              tech={["Three.js", "React", "Python", "FastAPI"]}
-              githubUrl="#"
-              liveUrl="#"
-              delay={400}
-            />
-            <ProjectCard 
-              title="Echo Social API"
-              description="Robust, rate-limited RESTful API serving as the backbone for a niche social network. Includes comprehensive Swagger documentation and OAuth 2.0."
-              tech={["Express", "Redis", "Jest", "Swagger"]}
-              githubUrl="#"
-              delay={500}
-            />
-          </div>
-          
-          <div className="mt-16 text-center">
-            <a href="#" className="inline-flex items-center gap-2 text-primary font-display font-semibold hover:text-white transition-colors group">
-              View Archive 
-              <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
-            </a>
+            {projects.length > 0
+              ? projects.map((p, i) => (
+                <ProjectCard
+                  key={p.id}
+                  title={p.title}
+                  description={p.description}
+                  tech={p.tags}
+                  githubUrl={p.githubUrl || '#'}
+                  liveUrl={p.liveUrl || undefined}
+                  delay={i * 100}
+                />
+              ))
+              : !loading && (
+                <p className="text-muted-foreground col-span-3 text-center py-10">
+                  No projects yet. Add some from the admin dashboard!
+                </p>
+              )
+            }
           </div>
         </div>
       </section>
 
-      {/* --- CONTACT SECTION --- */}
+      {/* ─── CONTACT ──────────────────────────────────────────────────────── */}
       <section id="contact" className="py-24 md:py-32 relative bg-card/50 border-t border-white/5">
         <div className="max-w-3xl mx-auto px-6 md:px-12">
-          <div 
-            ref={contactRef as any}
-            className={`text-center mb-16 animate-in-up ${contactInView ? 'is-visible' : ''}`}
-          >
+          <div ref={contactRef as any} className={`text-center mb-16 animate-in-up ${contactInView ? 'is-visible' : ''}`}>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 text-secondary font-display text-sm font-medium mb-8">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
               Available for Freelance
             </div>
-            
-            <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">
-              Get In Touch
-            </h2>
+
+            <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">Get In Touch</h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
               Although I'm currently looking for any new opportunities, my inbox is always open. Whether you have a question or just want to say hi, I'll try my best to get back to you!
             </p>
@@ -296,63 +370,35 @@ export default function Home() {
 
           <div className="glass-panel p-8 md:p-10 rounded-2xl border border-white/10 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary"></div>
-            
+
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-display text-muted-foreground uppercase tracking-wider">Name</label>
-                  <input
-                    id="name"
-                    {...form.register("name")}
-                    className="w-full bg-background/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    placeholder="John Doe"
-                  />
-                  {form.formState.errors.name && (
-                    <p className="text-destructive text-xs mt-1">{form.formState.errors.name.message}</p>
-                  )}
+                  <input id="name" {...form.register("name")} className="w-full bg-background/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="John Doe" />
+                  {form.formState.errors.name && <p className="text-destructive text-xs mt-1">{form.formState.errors.name.message}</p>}
                 </div>
-                
+
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-display text-muted-foreground uppercase tracking-wider">Email</label>
-                  <input
-                    id="email"
-                    type="email"
-                    {...form.register("email")}
-                    className="w-full bg-background/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    placeholder="john@example.com"
-                  />
-                  {form.formState.errors.email && (
-                    <p className="text-destructive text-xs mt-1">{form.formState.errors.email.message}</p>
-                  )}
+                  <input id="email" type="email" {...form.register("email")} className="w-full bg-background/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="john@example.com" />
+                  {form.formState.errors.email && <p className="text-destructive text-xs mt-1">{form.formState.errors.email.message}</p>}
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="message" className="text-sm font-display text-muted-foreground uppercase tracking-wider">Message</label>
-                <textarea
-                  id="message"
-                  rows={5}
-                  {...form.register("message")}
-                  className="w-full bg-background/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"
-                  placeholder="Hello, I'd like to talk about..."
-                />
-                {form.formState.errors.message && (
-                  <p className="text-destructive text-xs mt-1">{form.formState.errors.message.message}</p>
-                )}
+                <textarea id="message" rows={5} {...form.register("message")} className="w-full bg-background/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Hello, I'd like to talk about..." />
+                {form.formState.errors.message && <p className="text-destructive text-xs mt-1">{form.formState.errors.message.message}</p>}
               </div>
-              
+
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-4 bg-primary/10 border border-primary text-primary hover:bg-primary hover:text-primary-foreground font-display font-bold tracking-wider uppercase rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
               >
-                {isSubmitting ? (
-                  <span className="animate-pulse">Transmitting...</span>
-                ) : (
-                  <>
-                    Send Message
-                    <Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </>
+                {isSubmitting ? <span className="animate-pulse">Transmitting...</span> : (
+                  <><Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /> Send Message</>
                 )}
               </button>
             </form>
@@ -360,24 +406,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- FOOTER --- */}
+      {/* ─── FOOTER ───────────────────────────────────────────────────────── */}
       <footer className="py-8 text-center border-t border-white/5 bg-background relative z-10">
         <div className="flex justify-center gap-6 mb-6">
-          <a href="#" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="GitHub">
+          <a href={about?.github || '#'} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="GitHub">
             <Github size={20} />
           </a>
-          <a href="#" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="LinkedIn">
+          <a href={about?.linkedin || '#'} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="LinkedIn">
             <Linkedin size={20} />
           </a>
-          <a href="#" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="Twitter">
+          <a href={about?.twitter || '#'} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="Twitter">
             <Twitter size={20} />
           </a>
-          <a href="mailto:hello@example.com" className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="Email">
-            <Mail size={20} />
-          </a>
+          {about?.email && (
+            <a href={`mailto:${about.email}`} className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-primary/10 rounded-full" aria-label="Email">
+              <Mail size={20} />
+            </a>
+          )}
         </div>
         <p className="text-muted-foreground font-display text-sm">
-          Designed & Built by Alex Morgan <br/>
+          Designed & Built by {about?.name || 'Alex Morgan'} <br />
           <span className="text-xs opacity-50 mt-2 block">© {new Date().getFullYear()} All rights reserved.</span>
         </p>
       </footer>

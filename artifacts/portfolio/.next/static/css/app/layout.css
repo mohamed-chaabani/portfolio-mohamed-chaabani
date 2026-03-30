@@ -384,6 +384,9 @@
   .order-last {
     order: 9999;
   }
+  .col-span-3 {
+    grid-column: span 3 / span 3;
+  }
   .\!m-0 {
     margin: calc(var(--spacing) * 0) !important;
   }
@@ -428,6 +431,9 @@
   }
   .mt-4 {
     margin-top: calc(var(--spacing) * 4);
+  }
+  .mt-8 {
+    margin-top: calc(var(--spacing) * 8);
   }
   .mt-16 {
     margin-top: calc(var(--spacing) * 16);
@@ -1436,6 +1442,9 @@
   .py-8 {
     padding-block: calc(var(--spacing) * 8);
   }
+  .py-10 {
+    padding-block: calc(var(--spacing) * 10);
+  }
   .py-24 {
     padding-block: calc(var(--spacing) * 24);
   }
@@ -1697,6 +1706,12 @@
   }
   .text-white {
     color: var(--color-white);
+  }
+  .text-white\/30 {
+    color: color-mix(in srgb, #fff 30%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-white) 30%, transparent);
+    }
   }
   .uppercase {
     text-transform: uppercase;
