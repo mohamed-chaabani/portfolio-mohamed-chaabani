@@ -6,7 +6,7 @@ export const portfolioAbout = pgTable("portfolio_about", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().default("Alex Morgan"),
   title: text("title").notNull().default("Full Stack Developer"),
-  subtitle: text("subtitle").notNull().default("I build scalable web experiences"),
+  phrases: text("phrases").array().notNull().default([]),
   bio: text("bio").notNull().default(""),
   email: text("email").notNull().default(""),
   github: text("github").notNull().default(""),
