@@ -104,10 +104,10 @@ export function Navbar() {
       <div
         className={`
           md:hidden fixed inset-0 z-[90] flex flex-col justify-center items-center gap-8
-          bg-background/98 backdrop-blur-2xl
           transition-all duration-300 ease-in-out
           ${mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}
         `}
+        style={{ backgroundColor: '#060d14' }}
       >
         <ul className="flex flex-col items-center gap-10">
           {navItems.map((item, index) => (
