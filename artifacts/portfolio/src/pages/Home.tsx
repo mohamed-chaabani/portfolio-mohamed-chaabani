@@ -12,7 +12,6 @@ import { CanvasParticles } from '@/components/CanvasParticles';
 import { TypingEffect } from '@/components/TypingEffect';
 import { Navbar } from '@/components/Navbar';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
-import { SkillBar } from '@/components/SkillBar';
 import { ProjectCard } from '@/components/ProjectCard';
 
 // Setup Form Schema
@@ -151,37 +150,58 @@ export default function Home() {
       </section>
 
       {/* --- SKILLS SECTION --- */}
-      <section id="skills" className="py-24 md:py-32 bg-card/30 relative border-y border-white/5">
+      <section id="skills" className="py-24 md:py-32 relative border-y border-white/5" style={{ background: 'rgba(6,13,20,0.6)' }}>
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-16 flex items-center gap-4">
-            <span className="text-primary text-2xl md:text-3xl font-normal">02.</span> 
+            <span className="text-primary text-2xl md:text-3xl font-normal">02.</span>
             Technical Arsenal
             <div className="h-[1px] flex-grow bg-white/10 ml-4 hidden sm:block"></div>
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-12 md:gap-16">
-            <div>
-              <h3 className="text-xl font-display font-semibold text-white mb-8 border-b border-white/10 pb-4 inline-block pr-10">Frontend</h3>
-              <SkillBar name="React / Next.js" percentage={95} delay={100} />
-              <SkillBar name="TypeScript" percentage={90} delay={200} />
-              <SkillBar name="Tailwind CSS" percentage={95} delay={300} />
-              <SkillBar name="Three.js / Canvas" percentage={75} delay={400} />
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-display font-semibold text-white mb-8 border-b border-white/10 pb-4 inline-block pr-10">Backend</h3>
-              <SkillBar name="Node.js / Express" percentage={90} delay={150} />
-              <SkillBar name="Python / Django" percentage={80} delay={250} />
-              <SkillBar name="PostgreSQL" percentage={85} delay={350} />
-              <SkillBar name="Redis" percentage={70} delay={450} />
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Frontend */}
+            <div className="rounded-2xl border border-white/10 p-6 hover:border-primary/40 transition-colors duration-300" style={{ background: 'rgba(0,200,255,0.03)' }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'rgba(0,200,255,0.15)' }}>⚡</div>
+                <h3 className="text-lg font-display font-bold text-white tracking-wide">Frontend</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Three.js', 'Framer Motion', 'Redux', 'GraphQL'].map((skill) => (
+                  <span key={skill} className="px-3 py-1.5 rounded-full text-sm font-medium border border-primary/30 text-primary/90 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-default" style={{ background: 'rgba(0,200,255,0.05)' }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-xl font-display font-semibold text-white mb-8 border-b border-white/10 pb-4 inline-block pr-10">DevOps & Tools</h3>
-              <SkillBar name="Docker" percentage={80} delay={200} />
-              <SkillBar name="AWS / GCP" percentage={75} delay={300} />
-              <SkillBar name="CI/CD (Actions)" percentage={85} delay={400} />
-              <SkillBar name="Figma" percentage={90} delay={500} />
+            {/* Backend */}
+            <div className="rounded-2xl border border-white/10 p-6 hover:border-secondary/40 transition-colors duration-300" style={{ background: 'rgba(139,92,246,0.03)' }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'rgba(139,92,246,0.15)' }}>🛠</div>
+                <h3 className="text-lg font-display font-bold text-white tracking-wide">Backend</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['Node.js', 'Express', 'Python', 'Django', 'PostgreSQL', 'MongoDB', 'Redis', 'REST APIs'].map((skill) => (
+                  <span key={skill} className="px-3 py-1.5 rounded-full text-sm font-medium border border-secondary/30 text-secondary/90 hover:border-secondary hover:text-secondary hover:bg-secondary/10 transition-all duration-200 cursor-default" style={{ background: 'rgba(139,92,246,0.05)' }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* DevOps & Tools */}
+            <div className="rounded-2xl border border-white/10 p-6 hover:border-green-400/40 transition-colors duration-300" style={{ background: 'rgba(34,197,94,0.03)' }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: 'rgba(34,197,94,0.15)' }}>🚀</div>
+                <h3 className="text-lg font-display font-bold text-white tracking-wide">DevOps & Tools</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['Docker', 'AWS', 'GCP', 'CI/CD', 'GitHub Actions', 'Linux', 'Figma', 'Nginx'].map((skill) => (
+                  <span key={skill} className="px-3 py-1.5 rounded-full text-sm font-medium border border-green-500/30 text-green-400/90 hover:border-green-400 hover:text-green-400 hover:bg-green-400/10 transition-all duration-200 cursor-default" style={{ background: 'rgba(34,197,94,0.05)' }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
