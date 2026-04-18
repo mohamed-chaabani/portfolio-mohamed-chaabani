@@ -2,23 +2,21 @@ const BASE = "/api/portfolio";
 
 function getCredentials(): { username: string; password: string } | null {
   const saved = localStorage.getItem("admin_credentials");
-  console.log("[API] localStorage admin_credentials:", saved);
   return saved ? JSON.parse(saved) : null;
 }
 
 function headers(): HeadersInit {
   const creds = getCredentials();
-  console.log("[API] credentials:", creds);
+
   if (creds) {
     const h = {
       "Content-Type": "application/json",
       "x-username": creds.username,
       "x-password": creds.password,
     };
-    console.log("[API] headers:", h);
+
     return h;
   }
-  console.log("[API] no credentials, using basic headers");
   return {
     "Content-Type": "application/json",
   };
@@ -29,9 +27,7 @@ async function req<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  console.log(`[API] ${method} ${path}`, body);
   const h = headers();
-  console.log("[API] final headers:", h);
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: h,
@@ -81,6 +77,33 @@ export const createSkill = (data: any) => req<any>("POST", "/skills", data);
 export const updateSkill = (id: string, data: any) =>
   req<any>("PUT", `/skills/${id}`, data);
 export const deleteSkill = (id: string) => req<any>("DELETE", `/skills/${id}`);
+
+// Upload Image
+export const uploadProjectImage = async (
+  file: File,
+): Promise<{ url: string; publicId: string }> => {
+  const creds = getCredentials();
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const h: HeadersInit = {};
+  if (creds) {
+    h["x-username"] = creds.username;
+    h["x-password"] = creds.password;
+  }
+
+  const res = await fetch(`${BASE}/upload/project`, {
+    method: "POST",
+    headers: h,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Upload failed" }));
+    throw new Error(err.error || "Upload failed");
+  }
+  return res.json();
+};
 
 // Projects
 export const getProjects = () => req<any[]>("GET", "/projects");
