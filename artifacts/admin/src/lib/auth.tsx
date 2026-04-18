@@ -1,9 +1,15 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { getAbout } from "./api";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { login as apiLogin, getAbout } from "./api";
 
 type AuthCtx = {
   isAuthenticated: boolean;
-  login: (secret: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 };
 
@@ -13,33 +19,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("admin_secret");
+    const saved = localStorage.getItem("admin_credentials");
     if (saved) {
-      localStorage.setItem("admin_secret", saved);
-      getAbout()
+      const { username, password } = JSON.parse(saved);
+      apiLogin(username, password)
         .then(() => setIsAuthenticated(true))
         .catch(() => {
-          localStorage.removeItem("admin_secret");
+          localStorage.removeItem("admin_credentials");
           setIsAuthenticated(false);
         });
     }
   }, []);
 
-  const login = async (secret: string): Promise<boolean> => {
-    localStorage.setItem("admin_secret", secret);
+  const login = async (
+    username: string,
+    password: string,
+  ): Promise<boolean> => {
     try {
-      await getAbout();
+      await apiLogin(username, password);
+      localStorage.setItem(
+        "admin_credentials",
+        JSON.stringify({ username, password }),
+      );
       setIsAuthenticated(true);
       return true;
     } catch {
-      localStorage.removeItem("admin_secret");
       setIsAuthenticated(false);
       return false;
     }
   };
 
   const logout = () => {
-    localStorage.removeItem("admin_secret");
+    localStorage.removeItem("admin_credentials");
     setIsAuthenticated(false);
   };
 
