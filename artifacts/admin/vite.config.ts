@@ -1,15 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-const rawPort = process.env.ADMIN_PORT || process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    "ADMIN_PORT environment variable is required but was not provided.",
-  );
-}
+const rawPort = process.env.ADMIN_PORT || process.env.PORT || "5173";
 
 const port = Number(rawPort);
 
@@ -23,7 +16,6 @@ export default defineConfig({
   base: basePath,
   plugins: [
     react(),
-    tailwindcss(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

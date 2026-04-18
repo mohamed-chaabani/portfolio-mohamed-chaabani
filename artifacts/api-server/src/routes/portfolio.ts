@@ -87,7 +87,8 @@ router.get("/public", async (_req, res) => {
     const about = await About.findOne();
     const skills = await Skill.find().sort({ order: 1 });
     const projects = await Project.find().sort({ order: 1 });
-    res.json({ about: about || null, skills, projects });
+    const categories = await Category.find().sort({ order: 1 });
+    res.json({ about: about || null, skills, projects, categories });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch portfolio data" });
   }
