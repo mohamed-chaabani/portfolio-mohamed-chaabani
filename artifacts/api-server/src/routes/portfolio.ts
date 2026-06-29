@@ -88,7 +88,12 @@ router.get("/public", async (_req, res) => {
     const skills = await Skill.find().sort({ order: 1 });
     const projects = await Project.find().sort({ order: 1 });
     const categories = await Category.find().sort({ order: 1 });
-    res.json({ about: about || null, skills, projects, categories });
+    // Ensure all categories have a color
+    const categoriesWithColor = categories.map((cat: any) => ({
+      ...cat.toObject(),
+      color: cat.color && cat.color.trim() !== "" ? cat.color : "#8b5cf6",
+    }));
+    res.json({ about: about || null, skills, projects, categories: categoriesWithColor });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch portfolio data" });
   }

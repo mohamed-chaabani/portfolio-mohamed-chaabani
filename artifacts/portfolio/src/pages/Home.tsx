@@ -50,7 +50,7 @@ type Project = {
   featured: boolean;
 };
 
-type Category = { id: number; name: string };
+type Category = { id: number; name: string; color: string };
 
 type PortfolioData = {
   about: About | null;
@@ -128,7 +128,16 @@ const FALLBACK_CAT_CONFIG = {
   textColor: "rgba(156,163,175,0.9)",
 };
 
-const getCatConfig = (cat: string) => CAT_CONFIG[cat] || FALLBACK_CAT_CONFIG;
+const getCatConfig = (catName: string, catColor?: string) => {
+  const color = catColor && catColor.trim() !== "" ? catColor : "#6b7280";
+  return {
+    icon: "💻",
+    color: color,
+    bgColor: color + "08",
+    borderColor: color + "33",
+    textColor: color + "E6",
+  };
+};
 
 // ─── Contact form ─────────────────────────────────────────────────────────────
 
@@ -163,14 +172,11 @@ export default function Home() {
 
   // Fetch portfolio data from API
   useEffect(() => {
-    console.log("Fetching from API...");
     fetch("/api/portfolio/public")
       .then((res) => {
-        console.log("API response status:", res.status);
         return res.ok ? res.json() : null;
       })
       .then((json) => {
-        console.log("API data:", json);
         if (json) setData(json);
       })
       .catch((err) => {
@@ -183,6 +189,23 @@ export default function Home() {
 
   // Use categories from API (only ones that exist in DB)
   const categories = apiCategories?.map((c) => c.name);
+  const categoryColors = apiCategories?.reduce(
+    (acc, cat) => {
+      acc[cat.name] =
+        cat.color && cat.color.trim() !== "" ? cat.color : "#6b7280";
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
+
+  // Ensure all categories have a color
+  if (categories) {
+    categories.forEach((cat) => {
+      if (!categoryColors?.[cat]) {
+        categoryColors[cat] = "#6b7280";
+      }
+    });
+  }
   const skillsByCategory = categories?.reduce(
     (acc, cat) => {
       acc[cat] = skills.filter((s) => s.category === cat);
@@ -232,10 +255,18 @@ export default function Home() {
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black font-display text-white tracking-tighter mb-4 animate-in-up is-visible delay-100">
-            {about?.name?.split(" ")[0] || "Alex"}{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-              {about?.name?.split(" ").slice(1).join(" ") || "Morgan"}
-            </span>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-20 w-96 bg-white/10 rounded"></div>
+              </div>
+            ) : (
+              <>
+                {about?.name?.split(" ")[0] || "Alex"}{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                  {about?.name?.split(" ").slice(1).join(" ") || "Morgan"}
+                </span>
+              </>
+            )}
           </h1>
 
           <div className="text-xl md:text-3xl lg:text-4xl text-muted-foreground font-medium mb-8 animate-in-up is-visible delay-200 h-[40px] md:h-[56px]">
@@ -246,9 +277,9 @@ export default function Home() {
                   about?.phrases?.length
                     ? about.phrases
                     : [
-                        "scalable web apps.",
-                        "high-performance APIs.",
-                        "beautiful user interfaces.",
+                        // "scalable web apps.",
+                        // "high-performance APIs.",
+                        // "beautiful user interfaces.",
                       ]
                 }
               />
@@ -407,7 +438,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {categories?.map((cat) => {
-              const cfg = getCatConfig(cat);
+              const cfg = getCatConfig(cat, categoryColors?.[cat]);
               const catSkills = skillsByCategory[cat] || [];
               return (
                 <div

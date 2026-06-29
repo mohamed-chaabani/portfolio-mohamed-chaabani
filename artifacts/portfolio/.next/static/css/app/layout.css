@@ -868,6 +868,9 @@ h1,
 .h-svh{
   height: 100svh;
 }
+.h-20{
+  height: 5rem;
+}
 .max-h-\[--radix-context-menu-content-available-height\]{
   max-height: var(--radix-context-menu-content-available-height);
 }
@@ -986,6 +989,9 @@ h1,
 }
 .w-px{
   width: 1px;
+}
+.w-96{
+  width: 24rem;
 }
 .min-w-0{
   min-width: 0px;
@@ -1339,6 +1345,9 @@ h1,
 }
 .rounded-xl{
   border-radius: 0.75rem;
+}
+.rounded{
+  border-radius: 0.25rem;
 }
 .rounded-l-md{
   border-top-left-radius: calc(var(--radius) - 2px);
@@ -1984,6 +1993,14 @@ h1,
 }
 .blur-\[2px\]{
   --tw-blur: blur(2px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.blur-none{
+  --tw-blur:  ;
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.blur-sm{
+  --tw-blur: blur(4px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 .filter{
