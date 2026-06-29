@@ -1,161 +1,190 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { About, Skill, Project, Category, User } from "@workspace/db";
 import {
-  portfolioAbout,
-  portfolioSkills,
-  portfolioProjects,
-  insertAboutSchema,
-  insertSkillSchema,
-  insertProjectSchema,
-} from "@workspace/db";
-import { eq } from "drizzle-orm";
+  getProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+} from "../controllers/projectController";
 
 const router = Router();
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "admin123";
 
-function requireAdmin(req: any, res: any, next: any) {
+// Wrapper for async middleware
+const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+async function requireAdmin(req: any, res: any, next: any) {
+  // Check legacy admin secret
   const token = req.headers["x-admin-secret"] || req.query.secret;
-  if (token !== ADMIN_SECRET) {
+  if (token === ADMIN_SECRET) {
+    return next();
+  }
+
+  // Check username/password headers
+  const username = req.headers["x-username"];
+  const password = req.headers["x-password"];
+
+  if (!username || !password) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  next();
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const isMatch = await (user as any).comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    next();
+  } catch {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 }
+
+// ─── LOGIN ───────────────────────────────────────────────────────────────────
+
+router.post("/login", async (req, res): Promise<void> => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      res.status(400).json({ error: "Username and password required" });
+      return;
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+
+    const isMatch = await (user as any).comparePassword(password);
+    if (!isMatch) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+
+    res.json({ success: true });
+    return;
+  } catch (err: any) {
+    console.error("[LOGIN ERROR]", err);
+    res.status(500).json({ error: err.message || "Login failed" });
+    return;
+  }
+});
 
 // ─── PUBLIC ───────────────────────────────────────────────────────────────────
 
 router.get("/public", async (_req, res) => {
   try {
-    const [about] = await db.select().from(portfolioAbout).limit(1);
-    const skills = await db.select().from(portfolioSkills).orderBy(portfolioSkills.order);
-    const projects = await db.select().from(portfolioProjects).orderBy(portfolioProjects.order);
-    res.json({ about: about || null, skills, projects });
+    const about = await About.findOne();
+    const skills = await Skill.find().sort({ order: 1 });
+    const projects = await Project.find().sort({ order: 1 });
+    const categories = await Category.find().sort({ order: 1 });
+    // Ensure all categories have a color
+    const categoriesWithColor = categories.map((cat: any) => ({
+      ...cat.toObject(),
+      color: cat.color && cat.color.trim() !== "" ? cat.color : "#8b5cf6",
+    }));
+    res.json({ about: about || null, skills, projects, categories: categoriesWithColor });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch portfolio data" });
   }
 });
 
-// ─── ADMIN: ABOUT ─────────────────────────────────────────────────────────────
+// ─── ABOUT ───────────────────────────────────────────────────────────────────
 
-router.get("/about", requireAdmin, async (_req, res) => {
+// Public: Get about (no auth required)
+router.get("/about", async (_req, res) => {
   try {
-    const [about] = await db.select().from(portfolioAbout).limit(1);
+    const about = await About.findOne();
     res.json(about || null);
   } catch {
     res.status(500).json({ error: "Failed to fetch about" });
   }
 });
 
-router.put("/about", requireAdmin, async (req, res) => {
+// Admin only: Update about
+router.put("/about", asyncHandler(requireAdmin), async (req, res) => {
   try {
-    const parsed = insertAboutSchema.partial().safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-
-    const [existing] = await db.select().from(portfolioAbout).limit(1);
+    const existing = await About.findOne();
     if (existing) {
-      const [updated] = await db
-        .update(portfolioAbout)
-        .set({ ...parsed.data, updatedAt: new Date() })
-        .where(eq(portfolioAbout.id, existing.id))
-        .returning();
-      res.json(updated);
+      const updated = await About.findByIdAndUpdate(
+        existing._id,
+        { ...req.body, updatedAt: new Date() },
+        { new: true },
+      );
+      return res.json(updated);
     } else {
-      const [created] = await db.insert(portfolioAbout).values(parsed.data as any).returning();
-      res.json(created);
+      const created = await About.create(req.body);
+      return res.json(created);
     }
   } catch {
     res.status(500).json({ error: "Failed to update about" });
   }
 });
 
-// ─── ADMIN: SKILLS ────────────────────────────────────────────────────────────
+// ─── SKILLS ───────────────────────────────────────────────────────────────────
 
-router.get("/skills", requireAdmin, async (_req, res) => {
+// Public: Get skills (no auth required)
+router.get("/skills", async (_req, res) => {
   try {
-    const skills = await db.select().from(portfolioSkills).orderBy(portfolioSkills.order);
+    const skills = await Skill.find().sort({ order: 1 });
     res.json(skills);
   } catch {
     res.status(500).json({ error: "Failed to fetch skills" });
   }
 });
 
-router.post("/skills", requireAdmin, async (req, res) => {
+router.post("/skills", asyncHandler(requireAdmin), async (req, res) => {
   try {
-    const parsed = insertSkillSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-    const [created] = await db.insert(portfolioSkills).values(parsed.data).returning();
-    res.status(201).json(created);
+    const created = await Skill.create(req.body);
+    return res.status(201).json(created);
   } catch {
     res.status(500).json({ error: "Failed to create skill" });
   }
 });
 
-router.put("/skills/:id", requireAdmin, async (req, res) => {
+router.put("/skills/:id", asyncHandler(requireAdmin), async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const parsed = insertSkillSchema.partial().safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-    const [updated] = await db.update(portfolioSkills).set(parsed.data).where(eq(portfolioSkills.id, id)).returning();
+    const id = req.params.id;
+    const updated = await Skill.findByIdAndUpdate(id, req.body, { new: true });
     if (!updated) return res.status(404).json({ error: "Skill not found" });
-    res.json(updated);
+    return res.json(updated);
   } catch {
     res.status(500).json({ error: "Failed to update skill" });
   }
 });
 
-router.delete("/skills/:id", requireAdmin, async (req, res) => {
+router.delete("/skills/:id", asyncHandler(requireAdmin), async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    await db.delete(portfolioSkills).where(eq(portfolioSkills.id, id));
-    res.json({ success: true });
+    const id = req.params.id;
+    await Skill.findByIdAndDelete(id);
+    return res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete skill" });
   }
 });
 
-// ─── ADMIN: PROJECTS ──────────────────────────────────────────────────────────
+// ─── PROJECTS ───────────────────────────────────────────────────────────────
 
-router.get("/projects", requireAdmin, async (_req, res) => {
-  try {
-    const projects = await db.select().from(portfolioProjects).orderBy(portfolioProjects.order);
-    res.json(projects);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch projects" });
-  }
-});
+// Public: Get projects (no auth required)
+router.get("/projects", getProjects);
 
-router.post("/projects", requireAdmin, async (req, res) => {
-  try {
-    const parsed = insertProjectSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-    const [created] = await db.insert(portfolioProjects).values(parsed.data).returning();
-    res.status(201).json(created);
-  } catch {
-    res.status(500).json({ error: "Failed to create project" });
-  }
-});
+// Admin only: Create project (with imageUrl support)
+router.post("/projects", asyncHandler(requireAdmin), createProject);
 
-router.put("/projects/:id", requireAdmin, async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const parsed = insertProjectSchema.partial().safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-    const [updated] = await db.update(portfolioProjects).set(parsed.data).where(eq(portfolioProjects.id, id)).returning();
-    if (!updated) return res.status(404).json({ error: "Project not found" });
-    res.json(updated);
-  } catch {
-    res.status(500).json({ error: "Failed to update project" });
-  }
-});
+// Admin only: Update project (with imageUrl support)
+router.put("/projects/:id", asyncHandler(requireAdmin), updateProject);
 
-router.delete("/projects/:id", requireAdmin, async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    await db.delete(portfolioProjects).where(eq(portfolioProjects.id, id));
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Failed to delete project" });
-  }
-});
+// Admin only: Delete project
+router.delete("/projects/:id", asyncHandler(requireAdmin), deleteProject);
 
 export default router;
