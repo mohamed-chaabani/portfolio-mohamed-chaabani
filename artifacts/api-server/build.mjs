@@ -104,6 +104,7 @@ async function buildAll() {
       "multer",
       "multer-storage-cloudinary",
       "cloudinary",
+      "pino-http",
     ],
     sourcemap: "linked",
     plugins: [
