@@ -6,8 +6,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Use pinoHttp with type assertion to avoid TypeScript errors
+const pinoHttpMiddleware = pinoHttp as any;
 app.use(
-  pinoHttp({
+  pinoHttpMiddleware({
     logger,
     serializers: {
       req(req: any) {
