@@ -1,5 +1,11 @@
 import { Router } from "express";
 import { About, Skill, Project, Category, User } from "@workspace/db";
+import {
+  getProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+} from "../controllers/projectController";
 
 const router = Router();
 
@@ -81,7 +87,13 @@ router.get("/public", async (_req, res) => {
     const about = await About.findOne();
     const skills = await Skill.find().sort({ order: 1 });
     const projects = await Project.find().sort({ order: 1 });
-    res.json({ about: about || null, skills, projects });
+    const categories = await Category.find().sort({ order: 1 });
+    // Ensure all categories have a color
+    const categoriesWithColor = categories.map((cat: any) => ({
+      ...cat.toObject(),
+      color: cat.color && cat.color.trim() !== "" ? cat.color : "#8b5cf6",
+    }));
+    res.json({ about: about || null, skills, projects, categories: categoriesWithColor });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch portfolio data" });
   }
@@ -164,45 +176,15 @@ router.delete("/skills/:id", asyncHandler(requireAdmin), async (req, res) => {
 // ─── PROJECTS ───────────────────────────────────────────────────────────────
 
 // Public: Get projects (no auth required)
-router.get("/projects", async (_req, res) => {
-  try {
-    const projects = await Project.find().sort({ order: 1 });
-    return res.json(projects);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch projects" });
-  }
-});
+router.get("/projects", getProjects);
 
-router.post("/projects", asyncHandler(requireAdmin), async (req, res) => {
-  try {
-    const created = await Project.create(req.body);
-    return res.status(201).json(created);
-  } catch {
-    res.status(500).json({ error: "Failed to create project" });
-  }
-});
+// Admin only: Create project (with imageUrl support)
+router.post("/projects", asyncHandler(requireAdmin), createProject);
 
-router.put("/projects/:id", asyncHandler(requireAdmin), async (req, res) => {
-  try {
-    const id = req.params.id;
-    const updated = await Project.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
-    if (!updated) return res.status(404).json({ error: "Project not found" });
-    return res.json(updated);
-  } catch {
-    res.status(500).json({ error: "Failed to update project" });
-  }
-});
+// Admin only: Update project (with imageUrl support)
+router.put("/projects/:id", asyncHandler(requireAdmin), updateProject);
 
-router.delete("/projects/:id", asyncHandler(requireAdmin), async (req, res) => {
-  try {
-    const id = req.params.id;
-    await Project.findByIdAndDelete(id);
-    return res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Failed to delete project" });
-  }
-});
+// Admin only: Delete project
+router.delete("/projects/:id", asyncHandler(requireAdmin), deleteProject);
 
 export default router;

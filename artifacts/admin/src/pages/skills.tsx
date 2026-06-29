@@ -6,6 +6,7 @@ import {
   deleteSkill,
   getCategories,
   createCategory,
+  updateCategory,
   deleteCategory,
 } from "@/lib/api";
 import Layout from "@/components/Layout";
@@ -20,6 +21,12 @@ export default function SkillsPage() {
   const [editData, setEditData] = useState<any>({});
   const [newCategory, setNewCategory] = useState("");
   const [addingCategory, setAddingCategory] = useState(false);
+  const [selectedColor, setSelectedColor] = useState("#8b5cf6");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null,
+  );
+  const [editingCategoryData, setEditingCategoryData] = useState<any>({});
+  const [isEditingCategory, setIsEditingCategory] = useState(false);
 
   const loadSkills = () => getSkills().then(setSkills);
   const loadCategories = () =>
@@ -64,8 +71,13 @@ export default function SkillsPage() {
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     setAddingCategory(true);
-    await createCategory({ name: newCategory, order: categories.length + 1 });
+    await createCategory({
+      name: newCategory,
+      order: categories.length + 1,
+      color: selectedColor,
+    });
     setNewCategory("");
+    setSelectedColor(COLORS[0].value);
     await loadCategories();
     setAddingCategory(false);
   };
@@ -75,13 +87,53 @@ export default function SkillsPage() {
     await loadCategories();
   };
 
+  const handleEditCategory = (cat: any) => {
+    setIsEditingCategory(true);
+    setNewCategory(cat.name);
+    setSelectedColor(cat.color || COLORS[0].value);
+    setEditingCategoryId(cat._id);
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!newCategory.trim() || !editingCategoryId) return;
+    setAddingCategory(true);
+    await updateCategory(editingCategoryId, {
+      name: newCategory,
+      color: selectedColor,
+    });
+    setNewCategory("");
+    setSelectedColor(COLORS[0].value);
+    setIsEditingCategory(false);
+    setEditingCategoryId(null);
+    await loadCategories();
+    setAddingCategory(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingCategory(false);
+    setNewCategory("");
+    setSelectedColor(COLORS[0].value);
+    setEditingCategoryId(null);
+  };
+
   const grouped = categories.reduce((acc: Record<string, any[]>, cat: any) => {
     acc[cat.name] = skills.filter((s) => s.category === cat.name);
     return acc;
   }, {});
 
+  const COLORS = [
+    { name: "Cyan", value: "#00c8ff" },
+    { name: "Purple", value: "#8b5cf6" },
+    { name: "Green", value: "#10b981" },
+    { name: "Blue", value: "#3b82f6" },
+    { name: "Pink", value: "#ec4899" },
+    { name: "Orange", value: "#f97316" },
+    { name: "Red", value: "#ef4444" },
+    { name: "Yellow", value: "#eab308" },
+  ];
+
   const catColors: Record<string, string> = {
-    Frontend: "rgb(0,200,255)",
+    Frontend: "#00c8ff",
     Backend: "#8b5cf6",
     "DevOps & Tools": "#10b981",
   };
@@ -96,12 +148,14 @@ export default function SkillsPage() {
           </p>
         </div>
 
-        {/* Add Category */}
+        {/* Add/Edit Category */}
         <div
           className="rounded-xl border p-5 mb-6"
           style={{ background: "#0a1628", borderColor: "#1e3a5f" }}
         >
-          <h2 className="font-bold text-white mb-4">إضافة تصنيف جديد</h2>
+          <h2 className="font-bold text-white mb-4">
+            {isEditingCategory ? "تعديل التصنيف" : "إضافة تصنيف جديد"}
+          </h2>
           <div className="flex gap-3">
             <input
               type="text"
@@ -110,16 +164,63 @@ export default function SkillsPage() {
               placeholder="اسم التصنيف"
               className="flex-1 px-4 py-2.5 rounded-lg border text-white text-sm outline-none focus:border-cyan-400"
               style={{ background: "#060d14", borderColor: "#1e3a5f" }}
-              onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
+              onKeyDown={(e) =>
+                e.key === "Enter" &&
+                (isEditingCategory
+                  ? handleUpdateCategory()
+                  : handleAddCategory())
+              }
             />
-            <button
-              onClick={handleAddCategory}
-              disabled={addingCategory}
-              className="px-5 py-2.5 rounded-lg font-bold text-sm transition-all disabled:opacity-50"
-              style={{ background: "#8b5cf6", color: "#060d14" }}
-            >
-              {addingCategory ? "..." : "+ إضافة"}
-            </button>
+            {isEditingCategory ? (
+              <>
+                <button
+                  onClick={handleUpdateCategory}
+                  disabled={addingCategory}
+                  className="px-5 py-2.5 rounded-lg font-bold text-sm transition-all disabled:opacity-50"
+                  style={{ background: "#10b981", color: "#060d14" }}
+                >
+                  {addingCategory ? "..." : "تحديث"}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-5 py-2.5 rounded-lg font-bold text-sm transition-all"
+                  style={{ background: "#6b7280", color: "#060d14" }}
+                >
+                  إلغاء
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleAddCategory}
+                disabled={addingCategory}
+                className="px-5 py-2.5 rounded-lg font-bold text-sm transition-all disabled:opacity-50"
+                style={{ background: "#8b5cf6", color: "#060d14" }}
+              >
+                {addingCategory ? "..." : "+ إضافة"}
+              </button>
+            )}
+          </div>
+
+          {/* Color Picker */}
+          <div className="mt-4">
+            <label className="text-sm text-gray-400 mb-2 block">
+              اختر اللون
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {COLORS.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => setSelectedColor(color.value)}
+                  className={`w-8 h-8 rounded-full transition-all ${
+                    selectedColor === color.value
+                      ? "ring-2 ring-white ring-offset-2 ring-offset-gray-900"
+                      : ""
+                  }`}
+                  style={{ background: color.value }}
+                  title={color.name}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -175,26 +276,42 @@ export default function SkillsPage() {
             {categories.map((cat) => (
               <div
                 key={cat._id}
-                className="rounded-xl border p-5"
+                className="rounded-xl border p-5 group"
                 style={{ background: "#0a1628", borderColor: "#1e3a5f" }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3
-                    className="font-bold text-sm uppercase tracking-wider"
-                    style={{
-                      color: catColors[cat.name] || catColors[cat.name],
-                    }}
-                  >
-                    {cat.name}
-                  </h3>
-                  <button
-                    onClick={() => handleDeleteCategory(cat._id)}
-                    className="text-xs px-2 py-1 rounded transition-all"
-                    style={{ color: "#ef4444" }}
-                    title="حذف التصنيف"
-                  >
-                    🗑
-                  </button>
+                  <>
+                    <h3
+                      className="font-bold text-sm uppercase tracking-wider"
+                      style={{
+                        color: cat.color || catColors[cat.name],
+                      }}
+                    >
+                      {cat.name}
+                    </h3>
+                    {isEditingCategory && editingCategoryId === cat._id ? (
+                      <></>
+                    ) : (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleEditCategory(cat)}
+                          className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 rounded transition-all"
+                          style={{ color: "#9ca3af" }}
+                          title="تعديل"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(cat._id)}
+                          className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 rounded transition-all"
+                          style={{ color: "#ef4444" }}
+                          title="حذف"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    )}
+                  </>
                 </div>
                 <div className="space-y-2">
                   {grouped[cat.name]?.map((skill: any) => (
