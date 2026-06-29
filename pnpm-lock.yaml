@@ -809,6 +809,9 @@ importers:
       drizzle-zod:
         specifier: ^0.8.3
         version: 0.8.3(drizzle-orm@0.45.1(@types/pg@8.18.0)(pg@8.20.0))(zod@3.25.76)
+      mongoose:
+        specifier: ^8.0.0
+        version: 8.23.0
       pg:
         specifier: ^8.20.0
         version: 8.20.0
