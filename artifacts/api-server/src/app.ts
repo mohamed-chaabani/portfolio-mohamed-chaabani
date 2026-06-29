@@ -1,15 +1,14 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import { pinoHttp } from "pino-http";
+// @ts-ignore - pino-http has type issues
+import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
 
-// Use pinoHttp with type assertion to avoid TypeScript errors
-const pinoHttpMiddleware = pinoHttp as any;
 app.use(
-  pinoHttpMiddleware({
+  pinoHttp({
     logger,
     serializers: {
       req(req: any) {
